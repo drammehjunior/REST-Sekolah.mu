@@ -14,7 +14,7 @@ func ConnectDatabase(cfg config.Config) (*gorp.DbMap, error) {
 	//psqlInfo := fmt.Sprintf("host=%s user=%s dbname=%s port=%s password=''", cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPort)
 	db, dbErr := sql.Open("mysql", "root:@tcp(localhost:3306)/test")
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
-	dbmap.AddTableWithName(domain.Users{}, "user").SetKeys(true, "Id")
+	dbmap.AddTableWithName(domain.Users{}, "user").SetKeys(true, "Id").ColMap("Email").SetUnique(true)
 	err := dbmap.CreateTablesIfNotExists()
 
 	if err != nil {

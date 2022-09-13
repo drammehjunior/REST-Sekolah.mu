@@ -1,7 +1,7 @@
 package domain
 
 type Users struct {
-	Id        int64  `json:"id" gorm:"primary_key; auto_increment; not_null"`
+	Id        int64  `json:"id"`
 	Email     string `json:"email"`
 	Password  string `json:"password"`
 	Firstname string `json:"firstname"`

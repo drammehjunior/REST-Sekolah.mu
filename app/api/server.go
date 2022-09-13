@@ -2,6 +2,7 @@ package api
 
 import (
 	"exampleclean.com/refactor/app/api/handler"
+	"exampleclean.com/refactor/app/api/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,13 +21,13 @@ func NewServerHTTP(userHandler *handler.UserHandler) *ServerHTTP {
 	//
 	//// Request JWT
 	engine.POST("login", userHandler.LoginHandler)
+	engine.POST("signup", userHandler.SaveSignup)
 	engine.PUT("user/updatePassword", userHandler.UpdatePassword)
 
 	// Auth middleware
-	api := engine.Group("/api")
+	api := engine.Group("/api", middleware.AuthorizationMiddleware)
 	api.GET("users", userHandler.FindAll)
 	api.GET("users/:id", userHandler.FindByID)
-	api.POST("users", userHandler.SaveSignup)
 	api.DELETE("users/:id", userHandler.Delete)
 	api.GET("user/email/:mail", userHandler.FindByEmail)
 	//api.POST("login", userHandler.UserLogin)

@@ -112,7 +112,10 @@ func (cr *UserHandler) SaveSignup(c *gin.Context) {
 
 	user, err := cr.userUseCase.Save(c.Request.Context(), user)
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Error":   true,
+			"message": "You already signed up for this. Please login.",
+		})
 	} else {
 		response := Response{}
 		copier.Copy(&response, &user)
