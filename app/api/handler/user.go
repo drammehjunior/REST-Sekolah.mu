@@ -27,6 +27,13 @@ type Response struct {
 	Lastname  string `copier:"must"`
 }
 
+type ResponseLogin struct {
+	Email     string `copier:"must"`
+	Password  string `copier:"must"`
+	Firstname string `copier:"must"`
+	Lastname  string `copier:"must"`
+}
+
 func NewUserHandler(usercase services.UserUseCase) *UserHandler {
 	return &UserHandler{
 		userUseCase: usercase,
@@ -208,11 +215,19 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	user.Password = ""
+	response := ResponseLogin{}
+	errr := copier.Copy(&response, &user)
+	if errr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"Error": "It's not you, its us. Please try again later",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"Error": false,
-		"Data":  user,
+		"Data":  response,
+		"Token": tokenString,
 	})
 }
 
