@@ -41,7 +41,7 @@ func NewUserHandler(usercase services.UserUseCase) *UserHandler {
 }
 
 func (cr *UserHandler) FindAll(c *gin.Context) {
-	users, err := cr.userUseCase.FindAll(c.Request.Context())
+	users, err := cr.userUseCase.FindAll()
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
@@ -62,7 +62,7 @@ func (cr *UserHandler) FindByID(c *gin.Context) {
 		})
 		return
 	}
-	user, err := cr.userUseCase.FindByID(c.Request.Context(), uint(id))
+	user, err := cr.userUseCase.FindByID(uint(id))
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 	} else {
@@ -79,7 +79,7 @@ func (cr *UserHandler) Save(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err})
 		return
 	}
-	user, err := cr.userUseCase.Save(c.Request.Context(), user)
+	user, err := cr.userUseCase.Save(user)
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 	} else {
@@ -110,7 +110,7 @@ func (cr *UserHandler) SaveSignup(c *gin.Context) {
 	copier.Copy(&user, &userSignup)
 	user.Password = hashedPassword
 
-	user, err := cr.userUseCase.Save(c.Request.Context(), user)
+	user, err := cr.userUseCase.Save(user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"Error":   true,
@@ -134,8 +134,8 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	user, err := cr.userUseCase.FindByID(ctx, uint(id))
+	//ctx := c.Request.Context()
+	user, err := cr.userUseCase.FindByID(uint(id))
 
 	if user == (domain.Users{}) {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -143,7 +143,7 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 		})
 		return
 	}
-	cr.userUseCase.Delete(ctx, user)
+	cr.userUseCase.Delete(user)
 	c.JSON(http.StatusOK, gin.H{"message": "User is deleted succesfully"})
 }
 
@@ -155,7 +155,7 @@ func (cr *UserHandler) FindByEmail(c *gin.Context) {
 		})
 		return
 	}
-	user, err := cr.userUseCase.FindByEmail(c.Request.Context(), paramsEmail)
+	user, err := cr.userUseCase.FindByEmail(paramsEmail)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "email cannot be found",
@@ -183,7 +183,7 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	user, err := cr.userUseCase.FindByEmail(c, requestBody.Email)
+	user, err := cr.userUseCase.FindByEmail(requestBody.Email)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"Error": "Email or Password is incorrect",
@@ -243,7 +243,7 @@ func (cr *UserHandler) UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	user, err := cr.userUseCase.FindByEmail(c, requestBody.Email)
+	user, err := cr.userUseCase.FindByEmail(requestBody.Email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"Error": "Email cannot be found",
@@ -261,7 +261,7 @@ func (cr *UserHandler) UpdatePassword(c *gin.Context) {
 		return
 	}
 	user.Password = hashedPassword
-	if _, err := cr.userUseCase.UpdatePassword(c, user); err != nil {
+	if _, err := cr.userUseCase.UpdatePassword(user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "password does not match",
