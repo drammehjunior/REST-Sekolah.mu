@@ -19,7 +19,7 @@ func NewUserUseCase(repo interfaces.UserRepository) _interface.UserUseCase {
 
 func (c *userUseCase) FindAll() ([]domain.Users, error) {
 	users, err := c.userRepo.FindAll()
-	c.userRepo.FindAll()
+	//c.userRepo.FindAll()
 	return users, err
 }
 

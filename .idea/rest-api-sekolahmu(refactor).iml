@@ -7,5 +7,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="rest-api-sekolahmu(v3)" />
     <orderEntry type="module" module-name="awesomeProject1" />
+    <orderEntry type="module" module-name="LearnTest" />
   </component>
 </module>

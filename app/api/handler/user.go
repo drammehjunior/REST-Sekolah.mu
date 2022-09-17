@@ -48,7 +48,10 @@ func (cr *UserHandler) FindAll(c *gin.Context) {
 	} else {
 		response := []Response{}
 		copier.Copy(&response, &users)
-		c.JSON(http.StatusOK, response)
+		c.JSON(http.StatusOK, gin.H{
+			"data":   response,
+			"result": len(response),
+		})
 
 	}
 }

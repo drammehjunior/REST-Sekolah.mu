@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../LearnTest/.idea/LearnTest.iml" filepath="$PROJECT_DIR$/../LearnTest/.idea/LearnTest.iml" />
       <module fileurl="file://$USER_HOME$/GolandProjects/awesomeProject1/.idea/awesomeProject1.iml" filepath="$USER_HOME$/GolandProjects/awesomeProject1/.idea/awesomeProject1.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/rest-api-sekolahmu(refactor).iml" filepath="$PROJECT_DIR$/.idea/rest-api-sekolahmu(refactor).iml" />
       <module fileurl="file://$PROJECT_DIR$/../rest-api-sekolahmu(v3)/.idea/rest-api-sekolahmu(v3).iml" filepath="$PROJECT_DIR$/../rest-api-sekolahmu(v3)/.idea/rest-api-sekolahmu(v3).iml" />
