@@ -38,10 +38,10 @@ func (c *userDatabase) Delete(user domain.Users) error {
 	return err
 }
 
-func (c *userDatabase) FindByEmail(email string) (domain.Users, error) {
+func (c *userDatabase) FindByEmail(email string) (*domain.Users, error) {
 	var user domain.Users
 	err := c.DB.SelectOne(&user, "SELECT * FROM user WHERE Email=?", email)
-	return user, err
+	return &user, err
 }
 
 func (c *userDatabase) UpdatePassword(user domain.Users) (int64, error) {

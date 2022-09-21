@@ -8,5 +8,6 @@
     <orderEntry type="module" module-name="rest-api-sekolahmu(v3)" />
     <orderEntry type="module" module-name="awesomeProject1" />
     <orderEntry type="module" module-name="LearnTest" />
+    <orderEntry type="module" module-name="api-auth-main" />
   </component>
 </module>

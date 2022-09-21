@@ -5,12 +5,9 @@ import (
 	structs "exampleclean.com/refactor/app/rest-structs"
 	services "exampleclean.com/refactor/app/usecase/interface"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"github.com/jinzhu/copier"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 var jwtKey = []byte("my_super_secret_key")
@@ -172,58 +169,23 @@ func (cr *UserHandler) FindByEmail(c *gin.Context) {
 }
 
 func (cr *UserHandler) LoginHandler(c *gin.Context) {
+
 	var requestBody structs.LoginBody
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": "Internal Error"})
-		return
-	}
-	if requestBody.Email == "" || requestBody.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"Error": "Email or Password cannot be empty ",
-			"Data":  requestBody,
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Error"})
 		return
 	}
 
-	user, err := cr.userUseCase.FindByEmail(requestBody.Email)
+	user, token, err := cr.userUseCase.Login(requestBody)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"Error": "Email or Password is incorrect",
-			"Data":  requestBody,
-		})
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(requestBody.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"Error": "Email or Password is incorrect",
-			"Data":  requestBody,
-		})
-		return
-	}
-
-	expirationTime := time.Now().Add(2 * time.Hour).Unix()
-	claims := &structs.Claims{
-		ID: user.Id,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime,
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"Error": "It's not you, its us. Please try again later",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	response := ResponseLogin{}
-	errr := copier.Copy(&response, &user)
-	if errr != nil {
+	err = copier.Copy(&response, &user)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"Error": "It's not you, its us. Please try again later",
 		})
@@ -231,10 +193,11 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"Error": false,
+		"error": false,
 		"Data":  response,
-		"Token": tokenString,
+		"Token": token,
 	})
+	return
 }
 
 // should be implemented after the use of token
@@ -264,7 +227,7 @@ func (cr *UserHandler) UpdatePassword(c *gin.Context) {
 		return
 	}
 	user.Password = hashedPassword
-	if _, err := cr.userUseCase.UpdatePassword(user); err != nil {
+	if _, err := cr.userUseCase.UpdatePassword(*user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
 			"message": "password does not match",
