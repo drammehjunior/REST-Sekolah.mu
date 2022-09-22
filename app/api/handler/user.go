@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"exampleclean.com/refactor/app/domain"
 	structs "exampleclean.com/refactor/app/rest-structs"
 	services "exampleclean.com/refactor/app/usecase/interface"
 	"github.com/gin-gonic/gin"
@@ -20,6 +19,12 @@ type Response struct {
 	Id        int64  `copier:"must"`
 	Email     string `copier:"must"`
 	Password  string `copier:"must"`
+	Firstname string `copier:"must"`
+	Lastname  string `copier:"must"`
+}
+
+type FindByEmailResponse struct {
+	Email     string `copier:"must"`
 	Firstname string `copier:"must"`
 	Lastname  string `copier:"must"`
 }
@@ -72,55 +77,24 @@ func (cr *UserHandler) FindByID(c *gin.Context) {
 	}
 }
 
-func (cr *UserHandler) Save(c *gin.Context) {
-	var user domain.Users
-
-	if err := c.BindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": err})
-		return
-	}
-	user, err := cr.userUseCase.Save(user)
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-	} else {
-		response := Response{}
-		copier.Copy(&response, &user)
-	}
-}
-
 func (cr *UserHandler) SaveSignup(c *gin.Context) {
-	var user domain.Users
 	var userSignup structs.RequestSignup
 
 	//get the body
 	if err := c.BindJSON(&userSignup); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": err})
-		return
-	}
-	//matches the passwords and return error if not match
-	hashedPassword, errmsg := userSignup.ValidateAndHash()
-	if errmsg != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "password does not match",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 		return
 	}
 
-	copier.Copy(&user, &userSignup)
-	user.Password = hashedPassword
-
-	user, err := cr.userUseCase.Save(user)
+	user, err := cr.userUseCase.Save(userSignup)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"Error":   true,
-			"message": "You already signed up for this. Please login.",
-		})
-	} else {
-		response := Response{}
-		copier.Copy(&response, &user)
-		c.JSON(http.StatusOK, response)
+		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+		return
 	}
+
+	user.Password = ""
+	c.JSON(http.StatusAccepted, gin.H{"data": user})
+	return
 }
 
 func (cr *UserHandler) Delete(c *gin.Context) {
@@ -134,37 +108,32 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	//ctx := c.Request.Context()
-	user, err := cr.userUseCase.FindByID(uint(id))
-
-	if user == (domain.Users{}) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "User is cannot be found",
+	if err := cr.userUseCase.Delete(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to delete user",
 		})
 		return
 	}
-	cr.userUseCase.Delete(user)
-	c.JSON(http.StatusOK, gin.H{"message": "User is deleted succesfully"})
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"message": "user deleted successfully",
+	})
+	return
 }
 
 func (cr *UserHandler) FindByEmail(c *gin.Context) {
 	paramsEmail := c.Param("mail")
-	if paramsEmail == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "email cannot be empty",
-		})
-		return
-	}
 	user, err := cr.userUseCase.FindByEmail(paramsEmail)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "email cannot be found",
+			"error": err.Error(),
 		})
 		return
 	} else {
-		response := Response{}
-		copier.Copy(&response, &user)
-		c.JSON(http.StatusOK, response)
+		res := FindByEmailResponse{}
+		copier.Copy(&res, &user)
+		c.JSON(http.StatusOK, res)
+		return
 	}
 }
 
@@ -192,7 +161,7 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusAccepted, gin.H{
 		"error": false,
 		"Data":  response,
 		"Token": token,
@@ -200,44 +169,26 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 	return
 }
 
-// should be implemented after the use of token
+// UpdatePassword should be implemented after the use of token
 func (cr *UserHandler) UpdatePassword(c *gin.Context) {
 	var requestBody structs.UpdatePassword
 
 	if err := c.BindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": "Internal Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"Error": "Internal Error"})
 		return
 	}
 
-	user, err := cr.userUseCase.FindByEmail(requestBody.Email)
+	err := cr.userUseCase.UpdatePassword(requestBody)
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"Error": "Email cannot be found",
-			"Email": requestBody.Email,
+			"error": err.Error(),
 		})
 		return
 	}
 
-	hashedPassword, errmsg := requestBody.ValidateAndHash()
-	if errmsg != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "password does not match",
-		})
-		return
-	}
-	user.Password = hashedPassword
-	if _, err := cr.userUseCase.UpdatePassword(*user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   true,
-			"message": "password does not match",
-		})
-		return
-	}
-
-	user.Password = ""
 	c.JSON(http.StatusAccepted, gin.H{
-		"Error": false,
-		"Data":  user,
+		"message": "password changed",
 	})
+	return
 }

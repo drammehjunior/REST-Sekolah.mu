@@ -21,10 +21,13 @@ func (c *userDatabase) FindAll() ([]domain.Users, error) {
 	return users, err
 }
 
-func (c *userDatabase) FindByID(id uint) (domain.Users, error) {
+func (c *userDatabase) FindByID(id uint) (*domain.Users, error) {
 	var user domain.Users
 	err := c.DB.SelectOne(&user, "SELECT * FROM user WHERE Id=?", id)
-	return user, err
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (c *userDatabase) Save(user domain.Users) (domain.Users, error) {
@@ -35,7 +38,10 @@ func (c *userDatabase) Save(user domain.Users) (domain.Users, error) {
 
 func (c *userDatabase) Delete(user domain.Users) error {
 	_, err := c.DB.Delete(&user)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *userDatabase) FindByEmail(email string) (*domain.Users, error) {

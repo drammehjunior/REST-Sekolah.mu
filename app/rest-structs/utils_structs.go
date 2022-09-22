@@ -7,3 +7,11 @@ type Claims struct {
 	Email string `json:"Email"`
 	jwt.StandardClaims
 }
+
+type RequestSignup struct {
+	Email           string `copier:"must"`
+	Password        string `copier:"must"`
+	PasswordConfirm string `copier:"must"`
+	Firstname       string `copier:"must"`
+	Lastname        string `copier:"must"`
+}

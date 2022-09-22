@@ -13,7 +13,6 @@ import (
 var jwtKey = []byte("my_super_secret_key")
 
 func IsLoginInputValid(body rest_structs.LoginBody) error {
-
 	if body.Email == "" || body.Password == "" {
 		return errors.New("email or password cannot be empty")
 	}
@@ -22,11 +21,22 @@ func IsLoginInputValid(body rest_structs.LoginBody) error {
 	}
 	return nil
 }
+
+func IsEmailValid(email string) error {
+	if email == "" {
+		return errors.New("email cannot be empty")
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		return errors.New("email is not valid")
+	}
+	return nil
+}
+
 func IsPasswordMatched(oldPassword string, newPassword string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(newPassword)); err != nil {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func SignInToken(user domain.Users) (string, error) {
