@@ -12,6 +12,14 @@ import (
 
 var jwtKey = []byte("my_super_secret_key")
 
+func HashPassword(password string) string {
+	bs, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		return ""
+	}
+	return string(bs[:])
+}
+
 func IsLoginInputValid(body rest_structs.LoginBody) error {
 	if body.Email == "" || body.Password == "" {
 		return errors.New("email or password cannot be empty")
@@ -43,7 +51,7 @@ func SignInToken(user domain.Users) (string, error) {
 
 	expirationTime := time.Now().Add(2 * time.Hour).Unix()
 	claims := &rest_structs.Claims{
-		ID:    user.Id,
+		ID:    int64(user.Id),
 		Email: user.Email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime,

@@ -1,8 +1,11 @@
 package usecase
 
 import (
+	"errors"
 	"exampleclean.com/refactor/app/domain"
 	"exampleclean.com/refactor/app/repository"
+	rest_structs "exampleclean.com/refactor/app/rest-structs"
+	helper "exampleclean.com/refactor/app/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -13,30 +16,33 @@ var userUsecase = userUseCase{&userRepository1}
 
 func TestUserUseCase_FindByIDFailed(t *testing.T) {
 
-	userRepository1.Mock.On("FindByID", uint(20)).Return(nil, nil).Once()
-	user, err := userUsecase.FindByID(20)
+	userRepository1.Mock.On("FindByID", uint(2000)).Return(nil).Once()
+	user, err := userUsecase.FindByID(2000)
 	assert.NotNil(t, err)
-	assert.Equal(t, "", user.Email)
-	assert.Equal(t, "", user.Password)
+	assert.Nil(t, user)
+	assert.Equal(t, err, errors.New("user not found"))
 
 	//assert.Equal(t, "", user.Email)
 }
 
 func TestUserUseCase_FindByIDSuccess(t *testing.T) {
 
+	userId := uint(23)
 	user := domain.Users{
+		Id:        userId,
 		Email:     "sekolahmu.mu@gmail.com",
 		Password:  "1234556",
 		Firstname: "med",
 		Lastname:  "Dram",
 	}
 
-	userRepository1.Mock.On("FindByID", uint(2)).Return(user).Once()
-	res, err := userUsecase.FindByID(2)
+	userRepository1.Mock.On("FindByID", userId).Return(user).Once()
+	res, err := userUsecase.FindByID(userId)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 	assert.NotEmpty(t, res)
 	assert.Equal(t, user.Email, res.Email)
+	assert.Equal(t, user.Id, userId)
 	userRepository1.Mock.AssertCalled(t, "FindByID", mock.AnythingOfType("uint"))
 
 }
@@ -69,15 +75,17 @@ func TestUserUseCase_FindAllSuccess(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 	assert.Equal(t, cap(res), cap(users))
-	//fmt.Println(users)
 }
 
 func TestUserUseCase_FindAllFailed(t *testing.T) {
-	userRepository1.Mock.On("FindAll").Return(nil, nil).Once()
-	res, err := userUsecase.FindAll()
+	userRepository1.Mock.On("FindAll").Return(nil).Once()
+	user, err := userUsecase.FindAll()
+
+	expectedErrorMessage := errors.New("users not found")
 
 	assert.NotNil(t, err)
-	assert.Empty(t, res)
+	assert.Empty(t, user)
+	assert.Equal(t, err, expectedErrorMessage)
 }
 
 func TestUserUseCase_FindByEmailSuccess(t *testing.T) {
@@ -96,4 +104,123 @@ func TestUserUseCase_FindByEmailSuccess(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, res)
 	assert.Equal(t, res.Email, user.Email)
+}
+
+func TestUserUseCase_LoginSuccess(t *testing.T) {
+	testCases := []struct {
+		name    string
+		request *rest_structs.LoginBody
+	}{
+		{
+			name: "user_test_1",
+			request: &rest_structs.LoginBody{
+				Email:    "sekolahmu1@gmail.com",
+				Password: "1234",
+			},
+		},
+		{
+			name: "user_test_2",
+			request: &rest_structs.LoginBody{
+				Email:    "sekolahmu2@gmail.com",
+				Password: "1234",
+			},
+		},
+	}
+
+	for index, data := range testCases {
+		testData := domain.Users{
+			Id:        uint(index),
+			Email:     data.request.Email,
+			Password:  helper.HashPassword(data.request.Password),
+			Firstname: "Sekolah",
+			Lastname:  "Mu",
+		}
+		userRepository1.Mock.On("FindByEmail", testData.Email).Return(testData).Once()
+		t.Run(data.name, func(t *testing.T) {
+			user, token, err := userUsecase.Login(*data.request)
+			assert.NotNil(t, user)
+			assert.NotEmpty(t, token)
+			assert.Nil(t, err)
+		})
+
+	}
+}
+
+func TestUserUseCase_LoginFailed(t *testing.T) {
+	testCases := []struct {
+		name          string
+		request       *rest_structs.LoginBody
+		expectedError error
+	}{
+		{
+			name: "user_test_1",
+			request: &rest_structs.LoginBody{
+				Email:    "drammeh.com",
+				Password: "1234",
+			},
+			expectedError: errors.New("email is not valid"),
+		},
+		{
+			name: "user_test_2",
+			request: &rest_structs.LoginBody{
+				Email:    "sekolahmu1@gmail.com",
+				Password: "",
+			},
+			expectedError: errors.New("email or password cannot be empty"),
+		},
+		{
+			name: "user_test_3",
+			request: &rest_structs.LoginBody{
+				Email:    "",
+				Password: "2344",
+			},
+			expectedError: errors.New("email or password cannot be empty"),
+		},
+		{
+			name: "user_test_4",
+			request: &rest_structs.LoginBody{
+				Email:    "sekolahmu100@gmail.com",
+				Password: "34455",
+			},
+			expectedError: errors.New("user not found"),
+		},
+	}
+
+	for _, data := range testCases {
+		t.Run(data.name, func(t *testing.T) {
+			userRepository1.Mock.On("FindByEmail", data.request.Email).Return(nil, nil)
+
+			user, token, err := userUsecase.Login(*data.request)
+
+			assert.NotNil(t, err)
+			assert.Equal(t, err, data.expectedError)
+			assert.Empty(t, token)
+			assert.Nil(t, user)
+		})
+	}
+
+	userDummyReturn := &domain.Users{
+		Id:        3,
+		Email:     "sekolahmutest@gmail.com",
+		Password:  "1234",
+		Firstname: "sekolah",
+		Lastname:  "mu",
+	}
+
+	userInput := rest_structs.LoginBody{
+		Email:    "sekolahmutest@gmail.com",
+		Password: "12345",
+	}
+
+	expectedError := errors.New("email or password is incorrect")
+
+	t.Run("user_test_5", func(t *testing.T) {
+		userRepository1.Mock.On("FindByEmail", userInput.Email).Return(*userDummyReturn, nil).Once()
+		user, token, err := userUsecase.Login(userInput)
+
+		assert.Equal(t, err, expectedError)
+		assert.Nil(t, user)
+		assert.Empty(t, token)
+	})
+
 }

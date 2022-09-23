@@ -46,7 +46,9 @@ func (cr *UserHandler) FindAll(c *gin.Context) {
 	users, err := cr.userUseCase.FindAll()
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
 	} else {
 		response := []Response{}
 		copier.Copy(&response, &users)
@@ -63,13 +65,15 @@ func (cr *UserHandler) FindByID(c *gin.Context) {
 	id, err := strconv.Atoi(paramsId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"Error": "Cannot parse id",
+			"error": "Cannot parse id",
 		})
 		return
 	}
 	user, err := cr.userUseCase.FindByID(uint(id))
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
 	} else {
 		response := Response{}
 		copier.Copy(&response, &user)

@@ -30,9 +30,9 @@ func (c *userUseCase) FindAll() ([]domain.Users, error) {
 }
 
 func (c *userUseCase) FindByID(id uint) (*domain.Users, error) {
-	user, err := c.userRepo.FindByID(id)
-	if err != nil {
-		return nil, err
+	user := c.userRepo.FindByID(id)
+	if user == nil {
+		return nil, errors.New("user not found")
 	}
 	return user, nil
 }
@@ -49,6 +49,10 @@ func (c *userUseCase) Save(user rest_structs.RequestSignup) (*domain.Users, erro
 		return nil, errors.New("first and last name are empty")
 	}
 
+	if _, err := c.FindByEmail(user.Email); err == nil {
+		return nil, errors.New("user already exist. Please login")
+	}
+
 	hashedPassword, err := user.ValidateAndHash()
 	if err != nil {
 		return nil, err
@@ -61,14 +65,17 @@ func (c *userUseCase) Save(user rest_structs.RequestSignup) (*domain.Users, erro
 	}
 
 	savedUser, err := c.userRepo.Save(userParsed)
+	if err != nil {
+		return nil, err
+	}
 
 	return &savedUser, nil
 }
 
 func (c *userUseCase) Delete(id uint) error {
-	user, err := c.userRepo.FindByID(id)
-	if err != nil {
-		return errors.New("cannot find user with that ID")
+	user := c.userRepo.FindByID(id)
+	if user == nil {
+		return errors.New("user not found")
 	}
 
 	if err := c.userRepo.Delete(*user); err != nil {
