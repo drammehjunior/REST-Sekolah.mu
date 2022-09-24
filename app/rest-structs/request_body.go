@@ -18,15 +18,11 @@ type UpdatePassword struct {
 	NewPasswordConfirm string `copier:"must"`
 }
 
-func (c RequestSignup) ValidateAndHash() (string, error) {
+func (c RequestSignup) ValidatePassword() error {
 	if c.Password != c.PasswordConfirm {
-		return "", errors.New("password does not match")
+		return errors.New("password does not match")
 	} else {
-		bs, err := bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.MinCost)
-		if err != nil {
-			fmt.Println(err)
-		}
-		return string(bs[:]), nil
+		return nil
 	}
 }
 

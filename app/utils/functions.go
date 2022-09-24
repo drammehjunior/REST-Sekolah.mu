@@ -20,6 +20,18 @@ func HashPassword(password string) string {
 	return string(bs[:])
 }
 
+func IsPasswordFilledAndMatched(first, second string) error {
+	if first == "" || second == "" {
+		return errors.New("passwords cannot be empty")
+	}
+
+	if first != second {
+		return errors.New("password do not match")
+	}
+
+	return nil
+}
+
 func IsLoginInputValid(body rest_structs.LoginBody) error {
 	if body.Email == "" || body.Password == "" {
 		return errors.New("email or password cannot be empty")
@@ -42,9 +54,9 @@ func IsEmailValid(email string) error {
 
 func IsPasswordMatched(oldPassword string, newPassword string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(newPassword)); err != nil {
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 func SignInToken(user domain.Users) (string, error) {

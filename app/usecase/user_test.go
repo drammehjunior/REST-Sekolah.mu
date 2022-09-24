@@ -106,6 +106,46 @@ func TestUserUseCase_FindByEmailSuccess(t *testing.T) {
 	assert.Equal(t, res.Email, user.Email)
 }
 
+func TestUserUseCase_FindByEmailFailed(t *testing.T) {
+	cases := []struct {
+		name          string
+		email         string
+		expectedError error
+	}{
+		{
+			name:          "user_test_1",
+			email:         "mameddram.com",
+			expectedError: errors.New("email is not valid"),
+		},
+		{
+			name:          "user_test_2",
+			email:         "",
+			expectedError: errors.New("email cannot be empty"),
+		},
+	}
+
+	for _, data := range cases {
+		t.Run(data.name, func(t *testing.T) {
+			userRepository1.Mock.On("FindByEmail", data.email).Return(nil).Once()
+			user, err := userUsecase.FindByEmail(data.email)
+			assert.Equal(t, data.expectedError, err)
+			assert.Nil(t, user)
+		})
+	}
+
+	userEmail := "sekolahmu1@gmail.com"
+	expectedErr := errors.New("user account not found")
+
+	t.Run("user_test_3", func(t *testing.T) {
+		userRepository1.Mock.On("FindByEmail", userEmail).Return(nil).Once()
+		user, err := userUsecase.FindByEmail(userEmail)
+		assert.Nil(t, user)
+		assert.NotNil(t, err)
+		assert.Equal(t, err, expectedErr)
+
+	})
+}
+
 func TestUserUseCase_LoginSuccess(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -223,4 +263,226 @@ func TestUserUseCase_LoginFailed(t *testing.T) {
 		assert.Empty(t, token)
 	})
 
+}
+
+func TestUserUseCase_SaveSuccess(t *testing.T) {
+	newUser := rest_structs.RequestSignup{
+		Email:           "sekolahmu4@gmail.com",
+		Password:        "1234",
+		PasswordConfirm: "1234",
+		Firstname:       "sekolah",
+		Lastname:        "mu",
+	}
+
+	userRepository1.Mock.On("FindByEmail", newUser.Email).Return(nil).Once()
+	userRepository1.Mock.On("Save", newUser).Return(nil).Once()
+	user, err := userUsecase.Save(newUser)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, user)
+	assert.Equal(t, user.Email, newUser.Email)
+}
+
+func TestUserUseCase_SaveFailed(t *testing.T) {
+	testCases := []struct {
+		name          string
+		request       *rest_structs.RequestSignup
+		expectedError error
+	}{
+		{
+			name: "user_test_1",
+			request: &rest_structs.RequestSignup{
+				Email:           "",
+				Password:        "1234",
+				PasswordConfirm: "1234",
+				Firstname:       "mamed",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("email cannot be empty"),
+		},
+		{
+			name: "user_test_2",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu.com",
+				Password:        "1234",
+				PasswordConfirm: "1234",
+				Firstname:       "mamed",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("email is not valid"),
+		},
+		{
+			name: "user_test_3",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu@gmail.com",
+				Password:        "1234",
+				PasswordConfirm: "1234",
+				Firstname:       "",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("first and last name are empty"),
+		},
+		{
+			name: "user_test_4",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu@gmail.com",
+				Password:        "1234",
+				PasswordConfirm: "1234",
+				Firstname:       "mamed",
+				Lastname:        "",
+			},
+			expectedError: errors.New("first and last name are empty"),
+		},
+		{
+			name: "user_test_5",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu@gmail.com",
+				Password:        "1234",
+				PasswordConfirm: "",
+				Firstname:       "mamed",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("passwords cannot be empty"),
+		},
+		{
+			name: "user_test_6",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu@gmail.com",
+				Password:        "1234",
+				PasswordConfirm: "12345",
+				Firstname:       "mamed",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("password do not match"),
+		},
+		{
+			name: "user_test_6",
+			request: &rest_structs.RequestSignup{
+				Email:           "sekolahmu@gmail.com",
+				Password:        "1234",
+				PasswordConfirm: "1234",
+				Firstname:       "mamed",
+				Lastname:        "dram",
+			},
+			expectedError: errors.New("user already exist. Please login"),
+		},
+	}
+
+	for _, data := range testCases {
+		userTemplate := domain.Users{
+			Email:     data.request.Email,
+			Password:  data.request.Password,
+			Firstname: data.request.Firstname,
+			Lastname:  data.request.Lastname,
+		}
+
+		userSignup := rest_structs.RequestSignup{
+			Email:           data.request.Email,
+			Password:        data.request.Password,
+			PasswordConfirm: data.request.PasswordConfirm,
+			Firstname:       data.request.Firstname,
+			Lastname:        data.request.Lastname,
+		}
+
+		t.Run(data.name, func(t *testing.T) {
+			userRepository1.Mock.On("FindByEmail", data.request.Email).Return(userTemplate).Once()
+			userRepository1.Mock.On("Save", userSignup).Return(nil).Once()
+
+			user, err := userUsecase.Save(userSignup)
+			assert.Equal(t, err, data.expectedError)
+			assert.Nil(t, user)
+		})
+
+	}
+}
+
+func TestUserUseCase_UpdatePasswordSuccess(t *testing.T) {
+	userTest := rest_structs.UpdatePassword{
+		Email:              "sekolahmue@gmail.com",
+		OldPassword:        "1234",
+		NewPassword:        "12345",
+		NewPasswordConfirm: "12345",
+	}
+
+	userReturn := domain.Users{
+		Id:        23,
+		Email:     "sekolahmue@gmail.com",
+		Password:  "1234",
+		Firstname: "sekolah",
+		Lastname:  "mu",
+	}
+
+	t.Run("user_test_1", func(t *testing.T) {
+		userRepository1.Mock.On("FindByEmail", userTest.Email).Return(userReturn).Once()
+		userRepository1.Mock.On("UpdatePassword", userReturn).Return(1).Once()
+
+		err := userUsecase.UpdatePassword(userTest)
+		assert.Nil(t, err)
+	})
+}
+
+func TestUserUseCase_UpdatePasswordFailed(t *testing.T) {
+	userTest := []struct {
+		name          string
+		request       *rest_structs.UpdatePassword
+		expectedError error
+	}{
+		{
+			name: "user_test_1",
+			request: &rest_structs.UpdatePassword{
+				Email:              "sekolahmu.com",
+				OldPassword:        "1234",
+				NewPassword:        "12345",
+				NewPasswordConfirm: "12345",
+			},
+			expectedError: errors.New("email is not valid"),
+		},
+		{
+			name: "user_test_2",
+			request: &rest_structs.UpdatePassword{
+				Email:              "sekolahmu@gmail.com",
+				OldPassword:        "1234",
+				NewPassword:        "12345",
+				NewPasswordConfirm: "",
+			},
+			expectedError: errors.New("passwords cannot be empty"),
+		},
+		{
+			name: "user_test_3",
+			request: &rest_structs.UpdatePassword{
+				Email:              "sekolahmu@gmail.com",
+				OldPassword:        "",
+				NewPassword:        "12345",
+				NewPasswordConfirm: "12345",
+			},
+			expectedError: errors.New("password cannot be empty"),
+		},
+		{
+			name: "user_test_3",
+			request: &rest_structs.UpdatePassword{
+				Email:              "sekolahmu@gmail.com",
+				OldPassword:        "1222",
+				NewPassword:        "12345",
+				NewPasswordConfirm: "123456",
+			},
+			expectedError: errors.New("password do not match"),
+		},
+		{
+			name: "user_test_4",
+			request: &rest_structs.UpdatePassword{
+				Email:              "",
+				OldPassword:        "1234",
+				NewPassword:        "12345",
+				NewPasswordConfirm: "12345",
+			},
+			expectedError: errors.New("email cannot be empty"),
+		},
+	}
+
+	for _, data := range userTest {
+		userRepository1.Mock.On("FindByEmail", data.request.Email).Return(nil).Once()
+		userRepository1.Mock.On("UpdatePassword", data.request).Return(nil).Once()
+		err := userUsecase.UpdatePassword(*data.request)
+		assert.NotNil(t, err)
+		assert.Equal(t, err, data.expectedError)
+	}
 }

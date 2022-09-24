@@ -4,6 +4,8 @@ import (
 	"errors"
 	"exampleclean.com/refactor/app/domain"
 	"exampleclean.com/refactor/app/repository/interface"
+	rest_structs "exampleclean.com/refactor/app/rest-structs"
+	helper "exampleclean.com/refactor/app/utils"
 	"github.com/go-gorp/gorp"
 )
 
@@ -38,10 +40,19 @@ func (c *userDatabase) FindByID(id uint) *domain.Users {
 	return &user
 }
 
-func (c *userDatabase) Save(user domain.Users) (domain.Users, error) {
-	err := c.DB.Insert(&user)
-
-	return user, err
+func (c *userDatabase) Save(user rest_structs.RequestSignup) error {
+	parsedUser := domain.Users{
+		Email:     user.Email,
+		Password:  helper.HashPassword(user.Password),
+		Firstname: user.Firstname,
+		Lastname:  user.Lastname,
+	}
+	err := c.DB.Insert(&parsedUser)
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
 func (c *userDatabase) Delete(user domain.Users) error {
@@ -62,6 +73,7 @@ func (c *userDatabase) FindByEmail(email string) (*domain.Users, error) {
 }
 
 func (c *userDatabase) UpdatePassword(user domain.Users) (int64, error) {
+	user.Password = helper.HashPassword(user.Password)
 	row, err := c.DB.Update(&user)
 	return row, err
 }

@@ -15,3 +15,9 @@ type RequestSignup struct {
 	Firstname       string `copier:"must"`
 	Lastname        string `copier:"must"`
 }
+
+type SignupResponse struct {
+	Email     string `copier:"must"`
+	Firstname string `copier:"must"`
+	Lastname  string `copier:"must"`
+}

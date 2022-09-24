@@ -95,8 +95,6 @@ func (cr *UserHandler) SaveSignup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 		return
 	}
-
-	user.Password = ""
 	c.JSON(http.StatusAccepted, gin.H{"data": user})
 	return
 }

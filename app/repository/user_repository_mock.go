@@ -3,6 +3,8 @@ package repository
 import (
 	"errors"
 	"exampleclean.com/refactor/app/domain"
+	rest_structs "exampleclean.com/refactor/app/rest-structs"
+	"fmt"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -16,7 +18,7 @@ func (repository *UserRepositoryMock) Delete(user domain.Users) error {
 }
 
 func (repository *UserRepositoryMock) UpdatePassword(user domain.Users) (int64, error) {
-	arguments := repository.Mock.Called("UpdatePassword")
+	arguments := repository.Mock.Called(user)
 
 	if arguments.Get(0) == nil {
 		return 0, errors.New("error found in UpdatePassword")
@@ -33,6 +35,7 @@ func (repository *UserRepositoryMock) FindByEmail(email string) (*domain.Users, 
 	}
 
 	temp := arguments.Get(0).(domain.Users)
+	fmt.Println(temp)
 	return &temp, nil
 }
 
@@ -62,15 +65,12 @@ func (repository *UserRepositoryMock) FindByID(id uint) *domain.Users {
 	}
 }
 
-func (repository *UserRepositoryMock) Save(user domain.Users) (domain.Users, error) {
+func (repository *UserRepositoryMock) Save(user rest_structs.RequestSignup) error {
 	arguments := repository.Mock.Called(user)
 
-	//fmt.Println(arguments.Is(domain.Users{}, domain.Users{}))
-	//fmt.Printf("type: %#v", arguments.Get(0).(domain.Users))
-	if arguments.Get(0) == nil {
-		return domain.Users{}, errors.New("error from FindById")
+	if arguments.Get(0) != nil {
+		return errors.New("error from FindById")
 	} else {
-		user := arguments.Get(0).(domain.Users)
-		return user, nil
+		return nil
 	}
 }

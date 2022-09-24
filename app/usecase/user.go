@@ -7,7 +7,6 @@ import (
 	rest_structs "exampleclean.com/refactor/app/rest-structs"
 	_interface "exampleclean.com/refactor/app/usecase/interface"
 	helper "exampleclean.com/refactor/app/utils"
-	"github.com/jinzhu/copier"
 )
 
 type userUseCase struct {
@@ -21,6 +20,7 @@ func NewUserUseCase(repo interfaces.UserRepository) _interface.UserUseCase {
 	}
 }
 
+// done
 func (c *userUseCase) FindAll() ([]domain.Users, error) {
 	users, err := c.userRepo.FindAll()
 	if err != nil {
@@ -29,6 +29,7 @@ func (c *userUseCase) FindAll() ([]domain.Users, error) {
 	return users, nil
 }
 
+// done
 func (c *userUseCase) FindByID(id uint) (*domain.Users, error) {
 	user := c.userRepo.FindByID(id)
 	if user == nil {
@@ -37,11 +38,15 @@ func (c *userUseCase) FindByID(id uint) (*domain.Users, error) {
 	return user, nil
 }
 
-func (c *userUseCase) Save(user rest_structs.RequestSignup) (*domain.Users, error) {
+// done
+func (c *userUseCase) Save(user rest_structs.RequestSignup) (*rest_structs.SignupResponse, error) {
 	//check if all the fields are filled
-	var userParsed domain.Users
 
 	if err := helper.IsEmailValid(user.Email); err != nil {
+		return nil, err
+	}
+
+	if err := helper.IsPasswordFilledAndMatched(user.Password, user.PasswordConfirm); err != nil {
 		return nil, err
 	}
 
@@ -49,27 +54,25 @@ func (c *userUseCase) Save(user rest_structs.RequestSignup) (*domain.Users, erro
 		return nil, errors.New("first and last name are empty")
 	}
 
+	if user.Password != user.PasswordConfirm {
+		return nil, errors.New("password does not match")
+	}
+
 	if _, err := c.FindByEmail(user.Email); err == nil {
 		return nil, errors.New("user already exist. Please login")
 	}
 
-	hashedPassword, err := user.ValidateAndHash()
-	if err != nil {
-		return nil, err
-	}
-	user.Password = hashedPassword
-
-	err = copier.Copy(&userParsed, &user)
+	err := c.userRepo.Save(user)
 	if err != nil {
 		return nil, err
 	}
 
-	savedUser, err := c.userRepo.Save(userParsed)
-	if err != nil {
-		return nil, err
+	response := rest_structs.SignupResponse{
+		Email:     user.Email,
+		Firstname: user.Firstname,
+		Lastname:  user.Lastname,
 	}
-
-	return &savedUser, nil
+	return &response, nil
 }
 
 func (c *userUseCase) Delete(id uint) error {
@@ -84,6 +87,7 @@ func (c *userUseCase) Delete(id uint) error {
 	return nil
 }
 
+// done
 func (c *userUseCase) FindByEmail(email string) (*domain.Users, error) {
 	if err := helper.IsEmailValid(email); err != nil {
 		return nil, err
@@ -104,12 +108,11 @@ func (c *userUseCase) UpdatePassword(user rest_structs.UpdatePassword) error {
 		return err
 	}
 
-	if user.OldPassword == "" || user.NewPassword == "" || user.NewPasswordConfirm == "" {
-		return errors.New("password fields cannot be empty")
+	if user.OldPassword == "" {
+		return errors.New("password cannot be empty")
 	}
 
-	hashedPassword, err := user.ValidateAndHash()
-	if err != nil {
+	if err := helper.IsPasswordFilledAndMatched(user.NewPassword, user.NewPasswordConfirm); err != nil {
 		return err
 	}
 
@@ -123,8 +126,6 @@ func (c *userUseCase) UpdatePassword(user rest_structs.UpdatePassword) error {
 	//check if the previous passwords are matched
 	if helper.IsPasswordMatched(userNew.Password, user.OldPassword) {
 		return errors.New("passwords is incorrect")
-	} else {
-		userNew.Password = hashedPassword
 	}
 
 	//change password
@@ -135,6 +136,7 @@ func (c *userUseCase) UpdatePassword(user rest_structs.UpdatePassword) error {
 	return nil
 }
 
+// done
 func (c *userUseCase) Login(user rest_structs.LoginBody) (*domain.Users, string, error) {
 	//check if both email and password are not empty
 	if err := helper.IsLoginInputValid(user); err != nil {
@@ -148,7 +150,7 @@ func (c *userUseCase) Login(user rest_structs.LoginBody) (*domain.Users, string,
 	}
 
 	// compare the passwords
-	if helper.IsPasswordMatched(userNew.Password, user.Password) {
+	if !helper.IsPasswordMatched(userNew.Password, user.Password) {
 		return nil, "", errors.New("email or password is incorrect")
 	}
 
