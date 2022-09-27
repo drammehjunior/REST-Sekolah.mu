@@ -3,6 +3,8 @@ package handler
 import (
 	structs "exampleclean.com/refactor/app/rest-structs"
 	services "exampleclean.com/refactor/app/usecase/interface"
+	"exampleclean.com/refactor/app/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"net/http"
@@ -45,10 +47,12 @@ func NewUserHandler(usercase services.UserUseCase) *UserHandler {
 func (cr *UserHandler) FindAll(c *gin.Context) {
 	users, err := cr.userUseCase.FindAll()
 
+	fmt.Println(err)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
+		return
 	} else {
 		response := []Response{}
 		copier.Copy(&response, &users)
@@ -85,17 +89,14 @@ func (cr *UserHandler) SaveSignup(c *gin.Context) {
 	var userSignup structs.RequestSignup
 
 	//get the body
-	if err := c.BindJSON(&userSignup); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
-		return
-	}
+	c.BindJSON(&userSignup)
 
 	user, err := cr.userUseCase.Save(userSignup)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"data": user})
+	c.JSON(http.StatusCreated, gin.H{"data": user})
 	return
 }
 
@@ -105,7 +106,7 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"Error": "Cannot parse id",
+			"error": "cannot parse id",
 		})
 		return
 	}
@@ -117,7 +118,7 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusInternalServerError, gin.H{
+	c.JSON(http.StatusNoContent, gin.H{
 		"message": "user deleted successfully",
 	})
 	return
@@ -125,10 +126,18 @@ func (cr *UserHandler) Delete(c *gin.Context) {
 
 func (cr *UserHandler) FindByEmail(c *gin.Context) {
 	paramsEmail := c.Param("mail")
+
+	if err := utils.IsEmailValid(paramsEmail); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "parameter is invalid",
+		})
+		return
+	}
+
 	user, err := cr.userUseCase.FindByEmail(paramsEmail)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
+			"error": "parameter is invalid",
 		})
 		return
 	} else {
@@ -143,8 +152,10 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 
 	var requestBody structs.LoginBody
 
-	if err := c.BindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Error"})
+	c.BindJSON(&requestBody)
+
+	if requestBody.Email == "" || requestBody.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email or password cannot be empty"})
 		return
 	}
 
@@ -155,13 +166,7 @@ func (cr *UserHandler) LoginHandler(c *gin.Context) {
 	}
 
 	response := ResponseLogin{}
-	err = copier.Copy(&response, &user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"Error": "It's not you, its us. Please try again later",
-		})
-		return
-	}
+	copier.Copy(&response, &user)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"error": false,

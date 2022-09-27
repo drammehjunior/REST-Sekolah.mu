@@ -13,8 +13,13 @@ type UserRepositoryMock struct {
 }
 
 func (repository *UserRepositoryMock) Delete(user domain.Users) error {
-	//TODO implement me
-	panic("implement me")
+	arguments := repository.Mock.Called(user)
+
+	if arguments.Get(0) != nil {
+		return errors.New("fail to delete user")
+	} else {
+		return nil
+	}
 }
 
 func (repository *UserRepositoryMock) UpdatePassword(user domain.Users) (int64, error) {

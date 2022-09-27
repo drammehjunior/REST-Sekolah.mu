@@ -6,6 +6,7 @@ import (
 	"exampleclean.com/refactor/app/repository"
 	rest_structs "exampleclean.com/refactor/app/rest-structs"
 	helper "exampleclean.com/refactor/app/utils"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -228,7 +229,7 @@ func TestUserUseCase_LoginFailed(t *testing.T) {
 
 	for _, data := range testCases {
 		t.Run(data.name, func(t *testing.T) {
-			userRepository1.Mock.On("FindByEmail", data.request.Email).Return(nil, nil)
+			userRepository1.Mock.On("FindByEmail", data.request.Email).Return(nil, nil).Once()
 
 			user, token, err := userUsecase.Login(*data.request)
 
@@ -393,6 +394,63 @@ func TestUserUseCase_SaveFailed(t *testing.T) {
 		})
 
 	}
+}
+
+func TestUserUseCase_Delete(t *testing.T) {
+	userId := uint(8)
+	user := domain.Users{
+		Id:        userId,
+		Email:     "sekolahmu@gmail.com",
+		Password:  "12345",
+		Firstname: "sekolah",
+		Lastname:  "mu",
+	}
+
+	userRepository1.Mock.On("FindByID", userId).Return(user).Once()
+	userRepository1.Mock.On("Delete", user).Return(nil).Once()
+	err := userUsecase.Delete(userId)
+	assert.Nil(t, err)
+}
+
+func TestUserUseCase_DeleteFailed(t *testing.T) {
+	userId := uint(8)
+	user := domain.Users{
+		Id:        userId,
+		Email:     "sekolahmu@gmail.com",
+		Password:  "12345",
+		Firstname: "sekolah",
+		Lastname:  "mu",
+	}
+
+	t.Run("user_test_1", func(t *testing.T) {
+		userRepository1.Mock.On("FindByID", userId).Return(nil).Once()
+		userRepository1.Mock.On("Delete", user).Return(nil).Once()
+
+		err := userUsecase.Delete(userId)
+		assert.NotNil(t, err)
+		fmt.Println(err)
+		assert.Equal(t, err, errors.New("user not found"))
+	})
+
+	t.Run("user_test_2", func(t *testing.T) {
+
+		user1 := domain.Users{
+			Id:        uint(6),
+			Email:     "sekolahmu1@gmail.com",
+			Password:  "123451",
+			Firstname: "sekolah",
+			Lastname:  "mu",
+		}
+
+		userRepository1.Mock.On("FindByID", userId).Return(user1).Once()
+		userRepository1.Mock.On("Delete", user1).Return(errors.New("")).Once()
+
+		err := userUsecase.Delete(userId)
+		assert.NotNil(t, err)
+		fmt.Println(err)
+		assert.Equal(t, err, errors.New("fail to delete user"))
+	})
+
 }
 
 func TestUserUseCase_UpdatePasswordSuccess(t *testing.T) {
