@@ -10,11 +10,11 @@ import (
 )
 
 func InitializeAPI(cfg config.Config) (*api.ServerHTTP, error) {
-	gorpDB, err := db.ConnectDatabase(cfg)
+	gormDB, err := db.ConnectDatabaseGorm(cfg)
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repository.NewUserRepository(gorpDB)
+	userRepository := repository.NewUserRepositoryGorm(gormDB)
 	userUseCase := usecase.NewUserUseCase(userRepository)
 	userHandler := handler.NewUserHandler(userUseCase)
 	serverHTTP := api.NewServerHTTP(userHandler)

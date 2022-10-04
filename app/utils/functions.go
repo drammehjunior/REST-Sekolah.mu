@@ -1,10 +1,13 @@
 package utils
 
 import (
+	"crypto/sha1"
 	"errors"
 	"exampleclean.com/refactor/app/domain"
 	rest_structs "exampleclean.com/refactor/app/rest-structs"
+	"fmt"
 	"github.com/golang-jwt/jwt"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"net/mail"
 	"time"
@@ -12,7 +15,15 @@ import (
 
 var jwtKey = []byte("my_super_secret_key")
 
+func HashThisSHA1(password string) string {
+	pwd := sha1.New()
+	pwd.Write([]byte(password))
+	pwd.Write([]byte("hash_salt"))
+	return fmt.Sprintf("%x", pwd.Sum(nil))
+}
+
 func HashPassword(password string) string {
+	fmt.Println(viper.Get("ENCRYPT_KEY"))
 	bs, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
 		return ""
@@ -53,10 +64,13 @@ func IsEmailValid(email string) error {
 }
 
 func IsPasswordMatched(oldPassword string, newPassword string) bool {
-	if err := bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(newPassword)); err != nil {
+	newPasswordHashed := HashThisSHA1(newPassword)
+	if newPasswordHashed != oldPassword {
 		return false
+	} else {
+
+		return true
 	}
-	return true
 }
 
 func SignInToken(user domain.Users) (string, error) {

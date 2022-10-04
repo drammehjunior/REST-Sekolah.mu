@@ -3,18 +3,34 @@ package main
 import (
 	config2 "exampleclean.com/refactor/app/config"
 	"exampleclean.com/refactor/app/di"
-	"fmt"
+	"github.com/spf13/viper"
 	"log"
 )
 
 func main() {
 
+	//viper.AddConfigPath("./cmd")
+	//viper.SetConfigName("conf")
+	//viper.SetConfigType("env")
+	//
+	//viper.AutomaticEnv()
+	//
+	//err := viper.ReadInConfig()
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
+
+	//fmt.Println(viper.Get("DB_DRIVER")
+
+	viper.AddConfigPath("./cmd")
+	viper.SetConfigName("conf")
+	viper.SetConfigType("env")
+
 	config, configErr := config2.LoadConfig()
 	if configErr != nil {
 		log.Fatal("cannot load config: ", configErr)
 	}
-
-	fmt.Println(config)
 
 	server, diErr := di.InitializeAPI(config)
 	if diErr != nil {

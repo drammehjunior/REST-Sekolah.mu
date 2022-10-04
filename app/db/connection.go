@@ -12,7 +12,12 @@ import (
 
 func ConnectDatabase(cfg config.Config) (*gorp.DbMap, error) {
 	//psqlInfo := fmt.Sprintf("host=%s user=%s dbname=%s port=%s password=''", cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPort)
-	db, dbErr := sql.Open("mysql", "root:@tcp(localhost:3306)/test")
+	query := fmt.Sprintf("%s:@tcp(%s:%s)/%s", cfg.DBUser, cfg.DBHost, cfg.DBPort, cfg.DBName)
+	db, dbErr := sql.Open("mysql", query)
+	if dbErr != nil {
+		return nil, dbErr
+	}
+
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}}
 	dbmap.AddTableWithName(domain.Users{}, "user").SetKeys(true, "Id").ColMap("Email").SetUnique(true)
 	err := dbmap.CreateTablesIfNotExists()
@@ -20,5 +25,5 @@ func ConnectDatabase(cfg config.Config) (*gorp.DbMap, error) {
 	if err != nil {
 		fmt.Println("failed to make new table")
 	}
-	return dbmap, dbErr
+	return dbmap, nil
 }

@@ -124,8 +124,10 @@ func (c *userUseCase) UpdatePassword(user rest_structs.UpdatePassword) error {
 	}
 
 	//check if the previous passwords are matched
-	if helper.IsPasswordMatched(userNew.Password, user.OldPassword) {
-		return errors.New("passwords is incorrect")
+	if !helper.IsPasswordMatched(userNew.Password, user.OldPassword) {
+		return errors.New("password is incorrect with the old password")
+	} else {
+		userNew.Password = user.NewPassword
 	}
 
 	//change password

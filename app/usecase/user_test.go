@@ -3,7 +3,7 @@ package usecase
 import (
 	"errors"
 	"exampleclean.com/refactor/app/domain"
-	"exampleclean.com/refactor/app/repository"
+	"exampleclean.com/refactor/app/mocks"
 	rest_structs "exampleclean.com/refactor/app/rest-structs"
 	helper "exampleclean.com/refactor/app/utils"
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-var userRepository1 = repository.UserRepositoryMock{Mock: mock.Mock{}}
+var userRepository1 = mocks.UserRepositoryMock{Mock: mock.Mock{}}
 var userUsecase = userUseCase{&userRepository1}
 
 func TestUserUseCase_FindByIDFailed(t *testing.T) {
@@ -464,14 +464,21 @@ func TestUserUseCase_UpdatePasswordSuccess(t *testing.T) {
 	userReturn := domain.Users{
 		Id:        23,
 		Email:     "sekolahmue@gmail.com",
-		Password:  "1234",
+		Password:  helper.HashPassword("1234"),
+		Firstname: "sekolah",
+		Lastname:  "mu",
+	}
+	userReturnChanged := domain.Users{
+		Id:        23,
+		Email:     "sekolahmue@gmail.com",
+		Password:  userTest.NewPassword,
 		Firstname: "sekolah",
 		Lastname:  "mu",
 	}
 
 	t.Run("user_test_1", func(t *testing.T) {
 		userRepository1.Mock.On("FindByEmail", userTest.Email).Return(userReturn).Once()
-		userRepository1.Mock.On("UpdatePassword", userReturn).Return(1).Once()
+		userRepository1.Mock.On("UpdatePassword", userReturnChanged).Return(1).Once()
 
 		err := userUsecase.UpdatePassword(userTest)
 		assert.Nil(t, err)
